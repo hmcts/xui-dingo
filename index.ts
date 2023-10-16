@@ -1,6 +1,30 @@
 import { Pool } from 'pg';
 import { ShowCondition } from "./xui/conditional-show.model";
 import * as format from "pg-format";
+import * as yargs from 'yargs';
+
+const argv = yargs
+.option('caseTypeId', {
+  alias: 'c',
+  description: 'Case Type ID',
+  type: 'string'
+})
+.option('eventId', {
+  alias: 'e',
+  description: 'Event ID',
+  type: 'string'
+})
+.option('numberOfWorkers', {
+  alias: 'w',
+  description: 'Number of db worker threads',
+  type: 'number',
+  default: 5
+})
+.demandOption(['caseTypeId', 'eventId', 'numberOfWorkers'])
+  .help()
+  .alias('help', 'h')
+  .argv;
+
 
 const {
   Worker, isMainThread, parentPort,
@@ -26,15 +50,15 @@ const query = `
     SELECT max(id) FROM case_event t WHERE t.case_data_id = ce.case_data_id AND t.case_type_id = emf.case_type_id AND t.id < ce.id
   )
   JOIN case_data cd ON ce.case_data_id = cd.id
-  WHERE emf.case_type_id = 'NFD'
-  AND emf.event_id = 'caseworker-offline-document-verified'
+  WHERE emf.case_type_id = '${argv.caseTypeId}'
+  AND emf.event_id = '${argv.eventId}'
   AND (ce.data->>emf.field_id IS NULL 
   OR (emf.complex_field_id IS NOT NULL AND ce.data #> (string_to_array(emf.field_id || '.' || emf.complex_field_id, '.')) IS NULL))
   LIMIT 1`;
 
 const resultTable = 'event_with_missing_data';
 const pageSize = 20000;
-const maxWorkers = 10;
+const maxWorkers = argv.numberOfWorkers;
 
 async function main() {
   if (isMainThread) {
