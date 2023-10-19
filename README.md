@@ -7,4 +7,5 @@
 ### How to run
 1. Clone the repo
 2. `cd` into the cloned repo
-3. Run `npm start`
+3. Run `npm start -- --caseTypeId=<id> --eventId=<id> --numberOfWorkers=<number>`
+
